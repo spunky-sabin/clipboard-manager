@@ -54,9 +54,19 @@ cat > "$SCHEMA_DIR/org.gnome.shell.extensions.clipboard-manager.gschema.xml" << 
 <schemalist>
     <schema id="org.gnome.shell.extensions.clipboard-manager" path="/org/gnome/shell/extensions/clipboard-manager/">
         <key name="toggle-clipboard" type="as">
-            <default>['<Super>v']</default>
-            <summary>Toggle clipboard history</summary>
-            <description>Keyboard shortcut to toggle the clipboard history panel</description>
+    <default>['&lt;Super&gt;v']</default>
+    <summary>Toggle clipboard history</summary>
+    <description>Keyboard shortcut to toggle the clipboard history panel</description>
+</key>
+        <key name="clear-history" type="as">
+            <default>['&lt;Super&gt;Shift&gt;v']</default>
+            <summary>Clear clipboard history</summary>
+            <description>Keyboard shortcut to clear the clipboard history</description>
+        </key>
+        <key name="enable-clipboard-history" type="b">
+            <default>true</default>
+            <summary>Enable clipboard history</summary>
+            <description>Whether to enable clipboard history functionality</description>
         </key>
         <key name="history-size" type="i">
             <default>10</default>
