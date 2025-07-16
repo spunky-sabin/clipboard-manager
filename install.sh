@@ -27,7 +27,7 @@ EOF
 # Copy metadata
 cat > "$EXTENSION_DIR/metadata.json" << 'EOF'
 {
-    "uuid": "clipboard-manager@example.com",
+    "uuid": "clipboard-manager",
     "name": "Clipboard Manager",
     "description": "Windows-style clipboard manager with history and keyboard shortcuts. Press Super+V to access clipboard history.",
     "version": "1.0",

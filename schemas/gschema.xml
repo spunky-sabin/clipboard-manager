@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="org.gnome.shell.extensions.clipboard-manager" path="/org/gnome/shell/extensions/clipboard-manager/">
+        <key name="toggle-clipboard" type="as">
+            <default>['<Super>v']</default>
+            <summary>Toggle clipboard history</summary>
+            <description>Keyboard shortcut to toggle the clipboard history panel</description>
+        </key>
+        <key name="history-size" type="i">
+            <default>10</default>
+            <range min="5" max="50"/>
+            <summary>Clipboard history size</summary>
+            <description>Maximum number of clipboard items to store</description>
+        </key>
+        <key name="enable-panel-icon" type="b">
+            <default>true</default>
+            <summary>Show panel icon</summary>
+            <description>Whether to show the clipboard manager icon in the top panel</description>
+        </key>
+    </schema>
+</schemalist>

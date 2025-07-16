@@ -1,11 +1,9 @@
 // extension.js
-const { GObject, St, Clutter, Meta, Shell, Gio } = imports.gi;
+const { GObject, St, Clutter, Meta, Shell, Gio, GLib } = imports.gi;
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const MessageTray = imports.ui.messageTray;
-
-const CLIPBOARD_HISTORY_SIZE = 10;
 
 let clipboardManager = null;
 
@@ -13,7 +11,7 @@ let clipboardManager = null;
 var ClipboardHistoryPanel = GObject.registerClass({
     GTypeName: 'ClipboardHistoryPanel'
 }, class ClipboardHistoryPanel extends St.BoxLayout {
-    _init() {
+    _init(historySize = 10) {
         super._init({
             vertical: true,
             style_class: 'clipboard-history-panel',
@@ -22,6 +20,7 @@ var ClipboardHistoryPanel = GObject.registerClass({
             can_focus: true
         });
 
+        this._historySize = historySize;
         this._clipboardHistory = [];
         this._setupUI();
         this._setupClipboardMonitoring();
@@ -120,11 +119,21 @@ var ClipboardHistoryPanel = GObject.registerClass({
         this._clipboardHistory.unshift(text);
         
         // Limit history size
-        if (this._clipboardHistory.length > CLIPBOARD_HISTORY_SIZE) {
-            this._clipboardHistory = this._clipboardHistory.slice(0, CLIPBOARD_HISTORY_SIZE);
+        if (this._clipboardHistory.length > this._historySize) {
+            this._clipboardHistory = this._clipboardHistory.slice(0, this._historySize);
         }
         
         this._updateUI();
+    }
+
+    updateHistorySize(newSize) {
+        this._historySize = newSize;
+        
+        // Trim existing history if needed
+        if (this._clipboardHistory.length > this._historySize) {
+            this._clipboardHistory = this._clipboardHistory.slice(0, this._historySize);
+            this._updateUI();
+        }
     }
 
     _updateUI() {
@@ -246,15 +255,19 @@ class ClipboardManagerExtension {
         this._indicator = null;
         this._panel = null;
         this._keyBindingId = null;
+        this._settings = null;
+        this._settingsChangedIds = [];
     }
 
     enable() {
-        // Create panel indicator
-        this._indicator = new ClipboardIndicator();
-        Main.panel.addToStatusArea('clipboard-manager', this._indicator);
+        // Initialize settings
+        this._settings = new Gio.Settings({ 
+            schema_id: 'org.gnome.shell.extensions.clipboard-manager' 
+        });
 
-        // Create clipboard history panel
-        this._panel = new ClipboardHistoryPanel();
+        // Create clipboard history panel with configured size
+        const historySize = this._settings.get_int('history-size');
+        this._panel = new ClipboardHistoryPanel(historySize);
         
         // Add panel to UI group
         Main.uiGroup.add_child(this._panel);
@@ -266,6 +279,11 @@ class ClipboardManagerExtension {
         this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
             this._updatePanelPosition();
         });
+
+        // Create panel indicator if enabled
+        if (this._settings.get_boolean('enable-panel-icon')) {
+            this._createIndicator();
+        }
 
         // Setup keyboard shortcut
         this._setupKeyBinding();
@@ -285,12 +303,61 @@ class ClipboardManagerExtension {
             }
             return Clutter.EVENT_PROPAGATE;
         });
+
+        // Listen for settings changes
+        this._connectSettingsSignals();
+    }
+
+    _createIndicator() {
+        if (!this._indicator) {
+            this._indicator = new ClipboardIndicator();
+            Main.panel.addToStatusArea('clipboard-manager', this._indicator);
+        }
+    }
+
+    _removeIndicator() {
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+    }
+
+    _connectSettingsSignals() {
+        // Listen for history size changes
+        this._settingsChangedIds.push(
+            this._settings.connect('changed::history-size', () => {
+                const newSize = this._settings.get_int('history-size');
+                if (this._panel) {
+                    this._panel.updateHistorySize(newSize);
+                }
+            })
+        );
+
+        // Listen for panel icon toggle
+        this._settingsChangedIds.push(
+            this._settings.connect('changed::enable-panel-icon', () => {
+                const enableIcon = this._settings.get_boolean('enable-panel-icon');
+                if (enableIcon) {
+                    this._createIndicator();
+                } else {
+                    this._removeIndicator();
+                }
+            })
+        );
     }
 
     disable() {
+        // Disconnect settings signals
+        this._settingsChangedIds.forEach(id => {
+            if (this._settings) {
+                this._settings.disconnect(id);
+            }
+        });
+        this._settingsChangedIds = [];
+
         // Remove keyboard shortcut
         if (this._keyBindingId) {
-            Main.wm.removeKeybinding('clipboard-manager-toggle');
+            Main.wm.removeKeybinding('toggle-clipboard');
             this._keyBindingId = null;
         }
 
@@ -318,10 +385,10 @@ class ClipboardManagerExtension {
         }
 
         // Remove indicator
-        if (this._indicator) {
-            this._indicator.destroy();
-            this._indicator = null;
-        }
+        this._removeIndicator();
+
+        // Clear settings
+        this._settings = null;
     }
 
     _updatePanelPosition() {
@@ -339,16 +406,17 @@ class ClipboardManagerExtension {
     }
 
     _setupKeyBinding() {
-        Main.wm.addKeybinding(
-            'clipboard-manager-toggle',
-            new Gio.Settings({ schema: 'org.gnome.desktop.wm.keybindings' }),
-            Meta.KeyBindingFlags.NONE,
-            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
-            () => {
-                this.toggle();
-            }
-        );
-    }
+    Main.wm.addKeybinding(
+        'toggle-clipboard',
+        this._settings,
+        Meta.KeyBindingFlags.NONE,
+        Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+        () => {
+            this.toggle();
+        }
+    );
+}
+
 
     toggle() {
         if (this._panel) {
@@ -371,98 +439,4 @@ function disable() {
         clipboardManager.disable();
         clipboardManager = null;
     }
-}
-
-// CSS Styling
-const STYLESHEET = `
-.clipboard-history-panel {
-    background: rgba(0, 0, 0, 0.9);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    padding: 16px;
-    backdrop-filter: blur(10px);
-}
-
-.clipboard-history-header {
-    spacing: 12px;
-    margin-bottom: 16px;
-}
-
-.clipboard-history-title {
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-    flex: 1;
-}
-
-.clipboard-clear-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 8px 16px;
-    color: white;
-    font-size: 12px;
-}
-
-.clipboard-clear-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.clipboard-history-scroll {
-    max-height: 480px;
-}
-
-.clipboard-history-content {
-    spacing: 8px;
-}
-
-.clipboard-history-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 4px;
-}
-
-.clipboard-history-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.clipboard-item-box {
-    spacing: 4px;
-}
-
-.clipboard-item-text {
-    color: white;
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-.clipboard-item-info {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
-}
-
-.clipboard-empty-label {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
-    text-align: center;
-    padding: 32px;
-}
-`;
-
-// Add CSS to the extension
-if (typeof imports.misc.extensionUtils !== 'undefined') {
-    const ExtensionUtils = imports.misc.extensionUtils;
-    const Me = ExtensionUtils.getCurrentExtension();
-    
-    let theme = imports.gi.Gtk.IconTheme.get_default();
-    theme.append_search_path(Me.path + '/icons');
-    
-    // Apply CSS
-    let context = St.ThemeContext.get_for_stage(global.stage);
-    let theme_node = new St.ThemeNode({ theme: context.get_theme() });
-    context.get_theme().load_stylesheet_from_data(STYLESHEET, -1);
 }
