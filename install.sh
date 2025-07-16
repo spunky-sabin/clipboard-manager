@@ -5,7 +5,7 @@
 
 set -e
 
-EXTENSION_UUID="clipboard-manager@example.com"
+EXTENSION_UUID="clipboard-manager"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_UUID"
 SCHEMA_DIR="$EXTENSION_DIR/schemas"
 
@@ -41,7 +41,7 @@ cat > "$EXTENSION_DIR/metadata.json" << 'EOF'
         "44",
         "45"
     ],
-    "url": "https://github.com/example/clipboard-manager",
+    "url": "https://github.com/spunky-sabin/clipboard-manager",
     "gettext-domain": "clipboard-manager",
     "settings-schema": "org.gnome.shell.extensions.clipboard-manager"
 }
