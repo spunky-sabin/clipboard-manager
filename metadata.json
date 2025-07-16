@@ -1,0 +1,19 @@
+{
+    "uuid": "clipboard-manager@example.com",
+    "name": "Clipboard Manager",
+    "description": "Windows-style clipboard manager with history and keyboard shortcuts. Press Super+V to access clipboard history.",
+    "version": "1.0",
+    "shell-version": [
+        "3.36",
+        "3.38",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45"
+    ],
+    "url": "https://github.com/spunky-sabin/clipboard-manager",
+    "gettext-domain": "clipboard-manager",
+    "settings-schema": "org.gnome.shell.extensions.clipboard-manager"
+}
