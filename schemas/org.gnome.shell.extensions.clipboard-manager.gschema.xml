@@ -2,7 +2,7 @@
 <schemalist>
     <schema id="org.gnome.shell.extensions.clipboard-manager" path="/org/gnome/shell/extensions/clipboard-manager/">
         <key name="toggle-clipboard" type="as">
-            <default>['&lt;Super&gt;v']</default>
+            <default>['<Super>v']</default>
             <summary>Toggle clipboard history</summary>
             <description>Keyboard shortcut to toggle the clipboard history panel</description>
         </key>
