@@ -39,7 +39,8 @@ cat > "$EXTENSION_DIR/metadata.json" << 'EOF'
         "42",
         "43",
         "44",
-        "45"
+        "45",
+        "48.3"
     ],
     "url": "https://github.com/spunky-sabin/clipboard-manager",
     "gettext-domain": "clipboard-manager",
