@@ -1,5 +1,5 @@
 {
-    "uuid": "clipboard-manager@example.com",
+    "uuid": "clipboard-manager@spunky-sabin.com",
     "name": "Clipboard Manager",
     "description": "Windows-style clipboard manager with history and keyboard shortcuts. Press Super+V to access clipboard history.",
     "version": "1.0",
